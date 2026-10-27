@@ -16,6 +16,7 @@
 #include "follow_mon.h"
 #include "gf_rtc.h"
 #include "map_events.h"
+#include "map_header.h"
 #include "math_util.h"
 #include "metatile_behavior.h"
 #include "overlay_01.h"
@@ -62,6 +63,7 @@ typedef struct EncounterGenState {
     u8 isSinjohMap;
     u8 unownPuzzleFlags[ALPH_PUZZLE_MAX];
     Pokedex *pokedex;
+    u16 *dexNavTarget;
 } EncounterGenState;
 
 static void EncSlotArray_Init_Land(const EncounterData *encData, EncounterSlot *encSlots);
@@ -115,6 +117,10 @@ static BOOL addGeneratedMonToBattleSetupParty(int battler, EncounterGenState *en
 static u8 ApplyAbilityEffectToSlotLevel(EncounterSlot *encSlots, int numEncSlots, EncounterGenState *encounterGen, u8 chosenSlot);
 static void EncounterGenState_Init(FieldSystem *fieldSystem, Pokemon *pokemon, const EncounterData *encData, EncounterGenState *encounterGen);
 static void FieldSystem_UpdateTurnFrameCounter(FieldSystem *fieldSystem);
+static u8 EncounterType_GetNumSlots(u8 encType);
+static u8 EncounterSlot_WildMonSlotRoll(u8 encType, int rodType);
+static BOOL EncounterGen_TryChooseDexNavTargetSlot(EncounterGenState *encounterGen, EncounterSlot *encSlots, u8 encType, int rodType, u8 *slot);
+static void DexNavSpeciesList_AddSlots(const EncounterSlot *encSlots, int numSlots, u16 *speciesList, int *numSpecies, int maxSpecies);
 
 static void EncSlotArray_Init_Land(const EncounterData *encData, EncounterSlot *encSlots) {
     TIMEOFDAY timeOfDay = GF_RTC_GetTimeOfDay();
@@ -878,35 +884,36 @@ static void generateWildNonShinyAndAddToParty(u16 species, u8 level, int battler
 static BOOL FieldSystem_GenerateRegularEncounter(Pokemon *leadMon, int rodType, EncounterGenState *encounterGen, EncounterSlot *encSlots, u8 encType, int battler, BattleSetup *battleSetup) {
     u8 slot = 0;
     u8 level = 0;
+    BOOL isDexNavTarget = EncounterGen_TryChooseDexNavTargetSlot(encounterGen, encSlots, encType, rodType, &slot);
 
     switch (encType) {
     case ENCOUNTER_TYPE_LAND:
-        if (!EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_LAND, TYPE_STEEL, ABILITY_MAGNET_PULL, &slot) && !EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_LAND, TYPE_ELECTRIC, ABILITY_STATIC, &slot)) {
+        if (!isDexNavTarget && !EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_LAND, TYPE_STEEL, ABILITY_MAGNET_PULL, &slot) && !EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_LAND, TYPE_ELECTRIC, ABILITY_STATIC, &slot)) {
             slot = EncounterSlot_WildMonSlotRoll_Land();
         }
         slot = ApplyAbilityEffectToSlotLevel(encSlots, NUM_ENCOUNTERS_LAND, encounterGen, slot);
         level = encSlots[slot].maxLevel;
         break;
     case ENCOUNTER_TYPE_ROCK_SMASH:
-        if (!EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_ROCKSMASH, TYPE_STEEL, ABILITY_MAGNET_PULL, &slot) && !EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_ROCKSMASH, TYPE_ELECTRIC, ABILITY_STATIC, &slot)) {
+        if (!isDexNavTarget && !EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_ROCKSMASH, TYPE_STEEL, ABILITY_MAGNET_PULL, &slot) && !EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_ROCKSMASH, TYPE_ELECTRIC, ABILITY_STATIC, &slot)) {
             slot = EncounterSlot_WildMonSlotRoll_RockSmash();
         }
         level = EncounterSlot_WildMonLevelRoll(&encSlots[slot], encounterGen);
         break;
     case ENCOUNTER_TYPE_SURFING:
-        if (!EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_SURF, TYPE_STEEL, ABILITY_MAGNET_PULL, &slot) && !EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_SURF, TYPE_ELECTRIC, ABILITY_STATIC, &slot)) {
+        if (!isDexNavTarget && !EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_SURF, TYPE_STEEL, ABILITY_MAGNET_PULL, &slot) && !EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_SURF, TYPE_ELECTRIC, ABILITY_STATIC, &slot)) {
             slot = EncounterSlot_WildMonSlotRoll_Surfing();
         }
         level = EncounterSlot_WildMonLevelRoll(&encSlots[slot], encounterGen);
         break;
     case ENCOUNTER_TYPE_FISHING:
-        if (!EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_FISH, TYPE_STEEL, ABILITY_MAGNET_PULL, &slot) && !EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_FISH, TYPE_ELECTRIC, ABILITY_STATIC, &slot)) {
+        if (!isDexNavTarget && !EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_FISH, TYPE_STEEL, ABILITY_MAGNET_PULL, &slot) && !EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_FISH, TYPE_ELECTRIC, ABILITY_STATIC, &slot)) {
             slot = EncounterSlot_WildMonSlotRoll_Fishing(rodType);
         }
         level = EncounterSlot_WildMonLevelRoll(&encSlots[slot], encounterGen);
         break;
     case ENCOUNTER_TYPE_HEADBUTT:
-        if (!EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_HEADBUTT, TYPE_STEEL, ABILITY_MAGNET_PULL, &slot) && !EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_HEADBUTT, TYPE_ELECTRIC, ABILITY_STATIC, &slot)) {
+        if (!isDexNavTarget && !EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_HEADBUTT, TYPE_STEEL, ABILITY_MAGNET_PULL, &slot) && !EncounterSlot_AbilityInfluenceOnSlotChoiceCheck(leadMon, encounterGen, encSlots, NUM_ENCOUNTERS_HEADBUTT, TYPE_ELECTRIC, ABILITY_STATIC, &slot)) {
             slot = EncounterSlot_WildMonSlotRoll_Headbutt();
         }
         level = EncounterSlot_WildMonLevelRoll(&encSlots[slot], encounterGen);
@@ -923,6 +930,9 @@ static BOOL FieldSystem_GenerateRegularEncounter(Pokemon *leadMon, int rodType, 
     }
     if (EncounterGen_DoesRepelSuppressEncounter(level, encounterGen) == TRUE) {
         return FALSE;
+    }
+    if (isDexNavTarget) {
+        *encounterGen->dexNavTarget = SPECIES_NONE;
     }
     generateWildNonShinyAndAddToParty(encSlots[slot].species, level, battler, FALSE, encounterGen, leadMon, battleSetup);
     return TRUE;
@@ -1392,6 +1402,7 @@ static void EncounterGenState_Init(FieldSystem *fieldSystem, Pokemon *pokemon, c
     }
     encounterGen->pokedex = Save_Pokedex_Get(fieldSystem->saveData);
     encounterGen->playerId = PlayerProfile_GetTrainerID(Save_PlayerData_GetProfile(fieldSystem->saveData));
+    encounterGen->dexNavTarget = &fieldSystem->dexNavTargetSpecies;
 }
 
 static void FieldSystem_UpdateTurnFrameCounter(FieldSystem *fieldSystem) {
@@ -1426,4 +1437,160 @@ static void FieldSystem_UpdateTurnFrameCounter(FieldSystem *fieldSystem) {
         ++fieldSystem->reverseTurnFrameSteps;
     }
     fieldSystem->lastFacingDirection = facingDirection;
+}
+
+static u8 EncounterType_GetNumSlots(u8 encType) {
+    switch (encType) {
+    case ENCOUNTER_TYPE_LAND:
+        return NUM_ENCOUNTERS_LAND;
+    case ENCOUNTER_TYPE_SURFING:
+        return NUM_ENCOUNTERS_SURF;
+    case ENCOUNTER_TYPE_FISHING:
+        return NUM_ENCOUNTERS_FISH;
+    case ENCOUNTER_TYPE_ROCK_SMASH:
+        return NUM_ENCOUNTERS_ROCKSMASH;
+    case ENCOUNTER_TYPE_HEADBUTT:
+        return NUM_ENCOUNTERS_HEADBUTT;
+    default:
+        GF_ASSERT(FALSE);
+        return 0;
+    }
+}
+
+static u8 EncounterSlot_WildMonSlotRoll(u8 encType, int rodType) {
+    switch (encType) {
+    case ENCOUNTER_TYPE_LAND:
+        return EncounterSlot_WildMonSlotRoll_Land();
+    case ENCOUNTER_TYPE_SURFING:
+        return EncounterSlot_WildMonSlotRoll_Surfing();
+    case ENCOUNTER_TYPE_FISHING:
+        return EncounterSlot_WildMonSlotRoll_Fishing(rodType);
+    case ENCOUNTER_TYPE_ROCK_SMASH:
+        return EncounterSlot_WildMonSlotRoll_RockSmash();
+    case ENCOUNTER_TYPE_HEADBUTT:
+        return EncounterSlot_WildMonSlotRoll_Headbutt();
+    default:
+        GF_ASSERT(FALSE);
+        return 0;
+    }
+}
+
+#define DEXNAV_SLOT_ROLL_ATTEMPTS 100
+
+// If a DexNav target is set and appears in the given slots, picks one of the
+// slots containing it. Slots are weighted by their usual encounter odds by
+// rerolling until the target comes up, falling back to the first matching slot.
+static BOOL EncounterGen_TryChooseDexNavTargetSlot(EncounterGenState *encounterGen, EncounterSlot *encSlots, u8 encType, int rodType, u8 *slot) {
+    u16 target = *encounterGen->dexNavTarget;
+    if (target == SPECIES_NONE) {
+        return FALSE;
+    }
+
+    u8 numSlots = EncounterType_GetNumSlots(encType);
+    u8 i;
+    for (i = 0; i < numSlots; ++i) {
+        if (encSlots[i].species == target) {
+            break;
+        }
+    }
+    if (i == numSlots) {
+        return FALSE;
+    }
+
+    *slot = i;
+    for (int attempt = 0; attempt < DEXNAV_SLOT_ROLL_ATTEMPTS; ++attempt) {
+        u8 rolled = EncounterSlot_WildMonSlotRoll(encType, rodType);
+        if (encSlots[rolled].species == target) {
+            *slot = rolled;
+            break;
+        }
+    }
+    return TRUE;
+}
+
+static void DexNavSpeciesList_AddSlots(const EncounterSlot *encSlots, int numSlots, u16 *speciesList, int *numSpecies, int maxSpecies) {
+    for (int i = 0; i < numSlots; ++i) {
+        u16 species = encSlots[i].species;
+        if (species == SPECIES_NONE) {
+            continue;
+        }
+        int j;
+        for (j = 0; j < *numSpecies; ++j) {
+            if (speciesList[j] == species) {
+                break;
+            }
+        }
+        if (j == *numSpecies && *numSpecies < maxSpecies) {
+            speciesList[(*numSpecies)++] = species;
+        }
+    }
+}
+
+int FieldSystem_GetDexNavSpeciesList(FieldSystem *fieldSystem, u16 *speciesList, int maxSpecies) {
+    EncounterSlot encSlots[NUM_ENCOUNTERS_LAND];
+    int numSpecies = 0;
+
+    // Safari Zone and Bug-Catching Contest encounters come from their own tables.
+    SaveVarsFlags *saveVarsFlags = Save_VarsFlags_Get(fieldSystem->saveData);
+    if (Save_VarsFlags_CheckSafariSysFlag(saveVarsFlags) || Save_VarsFlags_CheckBugContestFlag(saveVarsFlags)) {
+        return 0;
+    }
+    if (!MapHeader_HasWildEncounters(fieldSystem->location->mapId)) {
+        return 0;
+    }
+
+    const EncounterData *encData = MapEvents_GetLoadedEncTable(fieldSystem);
+
+    if (encData->encounterRate_walking != 0) {
+        EncSlotArray_Init_Land(encData, encSlots);
+        EncSlots_Update_LandSwarm(fieldSystem, encData, &encSlots[0], &encSlots[1]);
+        EncSlotArray_Update_HoennSinnohSounds(fieldSystem, encData, encSlots);
+        DexNavSpeciesList_AddSlots(encSlots, NUM_ENCOUNTERS_LAND, speciesList, &numSpecies, maxSpecies);
+    }
+
+    if (encData->encounterRate_surfing != 0) {
+        for (int i = 0; i < NUM_ENCOUNTERS_SURF; ++i) {
+            encSlots[i].species = encData->surfSlots[i].species;
+        }
+        EncSlots_Update_SurfingSwarm(fieldSystem, encData, encSlots);
+        DexNavSpeciesList_AddSlots(encSlots, NUM_ENCOUNTERS_SURF, speciesList, &numSpecies, maxSpecies);
+    }
+
+    if (encData->encounterRate_rockSmash != 0) {
+        for (int i = 0; i < NUM_ENCOUNTERS_ROCKSMASH; ++i) {
+            encSlots[i].species = encData->rockSmashSlots[i].species;
+        }
+        DexNavSpeciesList_AddSlots(encSlots, NUM_ENCOUNTERS_ROCKSMASH, speciesList, &numSpecies, maxSpecies);
+    }
+
+    for (u8 rodType = ROD_TYPE_OLD; rodType <= ROD_TYPE_SUPER; ++rodType) {
+        const EncounterDataSlot *rodSlots;
+        u8 encounterRate;
+        switch (rodType) {
+        case ROD_TYPE_OLD:
+            rodSlots = encData->oldRodSlots;
+            encounterRate = encData->encounterRate_oldRod;
+            break;
+        case ROD_TYPE_GOOD:
+            rodSlots = encData->goodRodSlots;
+            encounterRate = encData->encounterRate_goodRod;
+            break;
+        case ROD_TYPE_SUPER:
+        default:
+            rodSlots = encData->superRodSlots;
+            encounterRate = encData->encounterRate_superRod;
+            break;
+        }
+        if (encounterRate == 0) {
+            continue;
+        }
+        for (int i = 0; i < NUM_ENCOUNTERS_FISH; ++i) {
+            encSlots[i].species = rodSlots[i].species;
+        }
+        EncSlotArray_Update_NightFishing(encData, rodType, encSlots);
+        EncSlots_Update_FishingSwarm(fieldSystem, rodType, encData, encSlots);
+        DexNavSpeciesList_AddSlots(encSlots, NUM_ENCOUNTERS_FISH, speciesList, &numSpecies, maxSpecies);
+    }
+
+    return numSpecies;
 }

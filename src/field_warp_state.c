@@ -2,6 +2,7 @@
 
 #include "constants/movements.h"
 #include "constants/pokemon.h"
+#include "constants/species.h"
 
 #include "field/field_follow_mon.h"
 #include "field/field_move_cut_in.h"
@@ -86,6 +87,7 @@ void FieldSystem_ResetStateOnMapConnection(FieldSystem *fieldSystem) {
     RoamerSave_SetFlute(roamers, 0);
     fieldSystem->encounterInhibitSteps = 0;
     fieldSystem->reverseTurnFrameSteps = 0;
+    fieldSystem->dexNavTargetSpecies = SPECIES_NONE;
     flags = Save_VarsFlags_Get(fieldSystem->saveData);
     if (!Save_VarsFlags_CheckSafariSysFlag(flags)) {
         roamers = Save_Roamers_Get(fieldSystem->saveData);
@@ -110,6 +112,7 @@ void FieldSystem_ResetStateOnWarp(FieldSystem *fieldSystem) {
     RoamerSave_SetFlute(roamers, 0);
     fieldSystem->encounterInhibitSteps = 0;
     fieldSystem->reverseTurnFrameSteps = 0;
+    fieldSystem->dexNavTargetSpecies = SPECIES_NONE;
     roamers = Save_Roamers_Get(fieldSystem->saveData);
     UpdatePlayerLocationHistoryIfAnyRoamersActive(roamers, fieldSystem->location->mapId);
     if (!MapHeader_IsCave(fieldSystem->location->mapId)) {

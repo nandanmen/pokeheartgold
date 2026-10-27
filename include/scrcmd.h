@@ -869,6 +869,8 @@ BOOL ScrCmd_BufferTrainerClassNameIndef(ScriptContext *ctx);
 BOOL ScrCmd_BufferSealNamePlural(ScriptContext *ctx);
 BOOL ScrCmd_Capitalize(ScriptContext *ctx);
 BOOL ScrCmd_BufferDeptStoreFloorNo(ScriptContext *ctx);
+BOOL ScrCmd_DexNavSpeciesListMenu(ScriptContext *ctx);
+BOOL ScrCmd_DexNavSetTarget(ScriptContext *ctx);
 
 MessageFormat *Frontier_NewBannedSpeciesMessageFormat(SaveData *saveData, u16 numEligblePokemon, u16 a2, u8 a3, u8 *numLegendaryPokemonSeen);
 void ovFieldMain_ShowEasyChatMessage(ScriptContext *ctx, u16 messageBank, u16 messageNum, u16 word1, s16 word2, u8 canABSpeedUp);

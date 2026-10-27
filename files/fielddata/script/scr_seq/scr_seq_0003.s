@@ -78,6 +78,7 @@
 	ScrDef scr_seq_0003_069
 	ScrDef scr_seq_0003_070
 	ScrDef scr_seq_0003_071
+	ScrDef scr_seq_0003_072
 	ScrDefEnd
 
 scr_seq_0003_002:
@@ -1747,6 +1748,30 @@ scr_seq_0003_064:
 	GetFollowPokePartyIndex VAR_SPECIAL_x8005
 	BufferPartyMonNick 0, VAR_SPECIAL_x8005
 	NPCMsg msg_0040_00100
+	WaitABPress
+	CloseMsg
+	ReleaseAll
+	End
+
+scr_seq_0003_072:
+	PlaySE SEQ_SE_DP_SELECT
+	LockAll
+	DexNavSpeciesListMenu VAR_SPECIAL_RESULT
+	Compare VAR_SPECIAL_RESULT, SPECIES_NONE
+	GoToIfEq _DexNavNothingFound
+	Compare VAR_SPECIAL_RESULT, 0xFFFE
+	GoToIfEq _DexNavEnd
+	DexNavSetTarget VAR_SPECIAL_RESULT
+	BufferSpeciesName 0, VAR_SPECIAL_RESULT, 0, 0
+	NPCMsg msg_0040_00118
+	WaitABPress
+	CloseMsg
+_DexNavEnd:
+	ReleaseAll
+	End
+
+_DexNavNothingFound:
+	NPCMsg msg_0040_00117
 	WaitABPress
 	CloseMsg
 	ReleaseAll

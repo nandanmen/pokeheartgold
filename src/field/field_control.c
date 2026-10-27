@@ -106,6 +106,7 @@ static void FieldInput_Clear(FieldInput *fieldInput) {
     fieldInput->unk0_B = 0;
     fieldInput->unk0_C = 0;
     fieldInput->unk0_D = 0;
+    fieldInput->dexNav = 0;
     fieldInput->playerDir = DIR_NONE;
     fieldInput->transitionDir = DIR_NONE;
 }
@@ -161,6 +162,8 @@ void FieldInput_Update(FieldInput *fieldInput, FieldSystem *fieldSystem, u16 new
             }
         } else if (newKeys & PAD_BUTTON_A) {
             fieldInput->interact = TRUE;
+        } else if (newKeys & PAD_BUTTON_SELECT) {
+            fieldInput->dexNav = TRUE;
         }
         if (PAD_PLUS_KEY_MASK & heldKeys) {
             fieldInput->sign = TRUE;
@@ -304,6 +307,11 @@ int FieldInput_Process(FieldInput *fieldInput, FieldSystem *fieldSystem) {
         PlaySE(SEQ_SE_DP_WIN_OPEN);
         StartMenu_Init(fieldSystem);
         return 2;
+    }
+
+    if (fieldInput->dexNav && FieldSystem_ShouldDrawStartMenuIcon(fieldSystem, START_MENU_ICON_POKEDEX) && FieldSystem_MapIsNotMysteryZone(fieldSystem) == TRUE) {
+        StartMapSceneScript(fieldSystem, std_dexnav, NULL);
+        return 1;
     }
 
     if (FieldSystem_FollowMonShayminNeedsRevert(fieldSystem)) {

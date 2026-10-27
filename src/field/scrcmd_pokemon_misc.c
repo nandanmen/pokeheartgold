@@ -4,6 +4,7 @@
 #include "constants/map_sections.h"
 #include "constants/moves.h"
 
+#include "field/encounter_check.h"
 #include "field/field_control.h"
 #include "msgdata/msg.naix"
 #include "msgdata/msg/msg_0066_D23R0102.h"
@@ -178,6 +179,56 @@ BOOL ScrCmd_BattleHallRecordSpeciesListMenu(ScriptContext *ctx) {
     DestroyMsgData(msgdata);
 
     return TRUE;
+}
+
+#define DEXNAV_MAX_SPECIES 40
+
+BOOL ScrCmd_DexNavSpeciesListMenu(ScriptContext *ctx) {
+    u16 speciesList[DEXNAV_MAX_SPECIES];
+    FieldSystem *fieldSystem = ctx->fieldSystem;
+    MessageFormat **msgfmt = FieldSysGetAttrAddr(fieldSystem, SCRIPTENV_MESSAGE_FORMAT);
+    Window *window = FieldSysGetAttrAddr(fieldSystem, SCRIPTENV_WINDOW);
+    u16 inputVar = ScriptReadHalfword(ctx);
+    u16 *input = GetVarPointer(fieldSystem, inputVar);
+
+    int numSpecies = FieldSystem_GetDexNavSpeciesList(fieldSystem, speciesList, DEXNAV_MAX_SPECIES);
+    if (numSpecies == 0) {
+        *input = SPECIES_NONE;
+        return FALSE;
+    }
+
+    ctx->data[0] = inputVar;
+
+    // The list menu writes the scroll position back through these, so they must stay valid while it's open.
+    u16 *cursorPos = GetVarPointer(fieldSystem, VAR_SPECIAL_x8006);
+    u16 *itemsAbove = GetVarPointer(fieldSystem, VAR_SPECIAL_x8007);
+    *cursorPos = 0;
+    *itemsAbove = 0;
+
+    MsgData *speciesNames = NewMsgDataFromNarc(MSGDATA_LOAD_DIRECT, NARC_msgdata_msg, NARC_msg_msg_0237_bin, HEAP_ID_FIELD3);
+    SpeciesListMenu *menu = SpeciesListMenu_New(fieldSystem, 20, 1, 0, 1, input, *msgfmt, window, speciesNames, cursorPos, itemsAbove);
+    for (int i = 0; i < numSpecies; i++) {
+        SpeciesListMenu_AddItem(menu, speciesList[i], 0xff, speciesList[i]);
+    }
+
+    MsgData *menuStrings = NewMsgDataFromNarc(MSGDATA_LOAD_LAZY, NARC_msgdata_msg, NARC_msg_msg_0191_bin, HEAP_ID_FIELD3);
+    SpeciesListMenu_SetMsgData(menu, menuStrings);
+    SpeciesListMenu_AddItem(menu, 0xd, 0xff, 0xfffe);
+    DestroyMsgData(menuStrings);
+
+    SpeciesListMenu_SetMsgData(menu, speciesNames);
+    SpeciesListMenu_Show(menu);
+
+    SetupNativeScript(ctx, NativeScript_WaitSpeciesListMenu);
+
+    DestroyMsgData(speciesNames);
+
+    return TRUE;
+}
+
+BOOL ScrCmd_DexNavSetTarget(ScriptContext *ctx) {
+    ctx->fieldSystem->dexNavTargetSpecies = ScriptGetVar(ctx);
+    return FALSE;
 }
 
 static BOOL NativeScript_WaitSpeciesListMenu(ScriptContext *ctx) {
