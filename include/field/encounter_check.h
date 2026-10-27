@@ -12,5 +12,6 @@ BOOL FieldSystem_PerformSweetScentEncounterCheck(FieldSystem *fieldSystem, TaskM
 BOOL FieldSystem_PerformHeadbuttEncounterCheck(FieldSystem *fieldSystem, BattleSetup **pBattleSetup, const HeadbuttSlot *headbuttSlots);
 void FieldSystem_GenerateSingleWildPokemon(FieldSystem *fieldSystem, u16 species, u8 level, BOOL shiny, BattleSetup *battleSetup);
 BOOL FieldSystem_CanGenerateStepEncounter(FieldSystem *fieldSystem, u8 metatileBehavior);
+int FieldSystem_GetDexNavSpeciesList(FieldSystem *fieldSystem, u16 *speciesList, int maxSpecies);
 
 #endif // GUARD_POKEHEARTGOLD_FIELD_ENCOUNTER_CHECK_H

@@ -486,4 +486,12 @@
 		<attribute name="window_context_name">used</attribute>
 		<language name="English">NOT TELLING</language>
 	</row>
+	<row id="msg_0040_00117" index="117">
+		<attribute name="window_context_name">used</attribute>
+		<language name="English">There are no wild Pokémon to search\nfor around here.</language>
+	</row>
+	<row id="msg_0040_00118" index="118">
+		<attribute name="window_context_name">used</attribute>
+		<language name="English">Searching for {STRVAR_1 0, 0, 0}!\nIt’ll be the next wild Pokémon you find.</language>
+	</row>
 </body>

@@ -4783,6 +4783,19 @@
 	.byte \arg1
 	.endm
 
+	; Shows the species available in the current location's encounter table.
+	; result_var receives the chosen species, 0xFFFE if cancelled, or SPECIES_NONE if nothing is available.
+	.macro DexNavSpeciesListMenu result_var
+	.short 853
+	.short \result_var
+	.endm
+
+	; Forces the next regular wild encounter to be this species if it's in the encounter slots being rolled.
+	.macro DexNavSetTarget species
+	.short 854
+	.short \species
+	.endm
+
 	; Script headers
 
 	.macro MapScript kind, script

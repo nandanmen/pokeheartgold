@@ -276,7 +276,8 @@ struct FieldSystem {
     fx32 projZOffset;
     FollowMonInteraction *followMonInteraction;
     u32 judgeStatPosition;
-}; // size: 0x128
+    u16 dexNavTargetSpecies; // species the next wild encounter is forced to, if available in the current encounter table
+}; // size: 0x12C
 
 typedef struct FieldInput {
     u16 interact : 1;
@@ -292,6 +293,7 @@ typedef struct FieldInput {
     u16 unk0_B : 1;
     u16 unk0_C : 1;
     u16 unk0_D : 1;
+    u16 dexNav : 1;
     u16 unk2;
     u8 playerDir;
     s8 transitionDir;
